@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dynamic Form Selection</title>
+  <style>
+    /* Base Styles */
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      position: relative;
+    }
+    #wrapper {
+      width: 50%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+    h2, h3 {
+      text-align: center;
+    }
+    form {
+      background: white;
+      padding: 20px;
+      margin-bottom: 20px;
+      border-radius: 10px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 5px;
+      box-sizing: border-box;
+      border: 1px solid #ccc;
+      font-family: inherit;
+    }
+    textarea {
+      height: 100px;
+    }
+    button {
+      margin-top: 20px;
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .hidden {
+      display: none;
+    }
+    .copy-button {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    /* Output and popup styling */
+    #result, #escalationResult, #threekBuildResult, #amendsResult, #icuResultAmends,
+    #icuResultCallOut, #icuResultEscalation {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      display: none;
+      position: relative;
+    }
+    #outputResult, #escalationOutput, #threekBuildOutput, #amendsOutput,
+    #icuOutputAmends, #icuOutputCallOut, #icuOutputEscalation {
+      white-space: pre-wrap;
+    }
+    #copyPopup {
+      display: none;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #4CAF50;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 5px;
+      z-index: 9999;
+      font-size: 14px;
+    }
+    fieldset {
+      margin-top: 15px;
+      padding: 10px;
+    }
+    fieldset legend {
+      font-weight: bold;
+    }
+    .inline-label {
+      display: inline-block;
+      margin-right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Popup for copy notifications -->
+  <div id="copyPopup">Copied to clipboard!</div>
+
+  <div id="wrapper">
+    <h2>Select a Form</h2>
+    <select id="formSelector" onchange="showForm()">
+      <option value="">Please select a form</option>
+      <option value="callOutForm">Call-Out Form</option>
+      <option value="escalationForm">QA Escalation Form</option>
+      <option value="threekBuildForm">$3k Build Form</option>
+      <option value="amendsForm">Amends Form</option>
+    </select>
+
+    <!-- Call-Out Form -->
+    <div id="callOutForm" class="hidden">
+      <h3>Call-Out Form</h3>
+      <form id="callOutFormFields">
+        <!-- Original Fields -->
+        <label for="assetId">Asset ID #:</label>
+        <input type="text" id="assetId" name="assetId">
+
+        <label for="name">Name:</label>
+        <input type="text" id="name" name="name">
+
+        <label for="phoneNumber">Phone Number:</label>
+        <input type="tel" id="phoneNumber" name="phoneNumber">
+
+        <label for="date">Date:</label>
+        <input type="date" id="date" name="date">
+
+        <label for="time">Time (including timezone):</label>
+        <input type="text" id="time" name="time" placeholder="e.g., 2 PM CST">
+
+        <label for="reason">Reason:</label>
+        <select id="reason" name="reason">
+          <option value="The client is requesting a redesign">The client is requesting a redesign</option>
+          <option value="The client is requesting design changes">The client is requesting design changes</option>
+          <option value="The client is requesting copy changes">The client is requesting copy changes</option>
+        </select>
+
+        <!-- New Email Body Field -->
+        <label for="emailBodyCallOut">Email Body:</label>
+        <textarea id="emailBodyCallOut" name="emailBodyCallOut" placeholder="Paste the email body here"></textarea>
+
+        <!-- Amends Options: Immediately after the Email Body -->
+        <fieldset>
+          <legend>Amends Options</legend>
+          <label class="inline-label">
+            <input type="checkbox" id="amends3kCallOut" name="amendsOptionsCallOut" value="3k"> $3k+
+          </label>
+          <label class="inline-label">
+            <input type="checkbox" id="amendsEliteCallOut" name="amendsOptionsCallOut" value="elite"> Elite
+          </label>
+          <label class="inline-label">
+            <input type="checkbox" id="amendsOutOfNormCallOut" name="amendsOptionsCallOut" value="outOfNorm"> Out of Norm
+          </label>
+          <br>
+          <label class="inline-label">Pre-live 
+            <input type="radio" id="amendsPreLiveCallOut" name="amendsLiveStatusCallOut" value="pre-live">
+          </label>
+          <label class="inline-label">Post-live 
+            <input type="radio" id="amendsPostLiveCallOut" name="amendsLiveStatusCallOut" value="post-live">
+          </label>
+        </fieldset>
+
+        <!-- ICU Fields: Now placed after the Amends Options -->
+        <label for="time-of-day-callout">Select Time of Day:</label>
+        <select id="time-of-day-callout" name="time-of-day">
+          <option value="" selected>Select an option</option>
+          <option value="morning">Morning</option>
+          <option value="afternoon">Afternoon</option>
+          <option value="evening">Evening</option>
+        </select>
+
+        <label for="requested-by-callout">Requested By:</label>
+        <input type="text" id="requested-by-callout" name="requested-by" placeholder="Enter Requester's Name">
+
+        <label for="icu-case-callout">ICU Case Number:</label>
+        <input type="text" id="icu-case-callout" name="icu-case" placeholder="Enter ICU Case Number">
+
+        <button type="button" onclick="generateCallOutText()">Generate Text</button>
+      </form>
+      <!-- Main Output Section (includes header and callout message) -->
+      <div id="result">
+        <button class="copy-button" onclick="copyToClipboard('outputResult')">Copy</button>
+        <p id="outputResult"></p>
+      </div>
+      <!-- Separate ICU Output Section -->
+      <div id="icuResultCallOut">
+        <button class="copy-button" onclick="copyToClipboard('icuOutputCallOut')">Copy</button>
+        <p id="icuOutputCallOut"></p>
+      </div>
+    </div>
+
+    <!-- QA Escalation Form -->
+    <div id="escalationForm" class="hidden">
+      <h3>QA Escalation Form</h3>
+      <form id="escalationFormFields">
+        <!-- Original Fields -->
+        <label for="assetIdEscalation">Asset ID #:</label>
+        <input type="text" id="assetIdEscalation" name="assetIdEscalation">
+        
+        <!-- QA Options: New $3k checkbox -->
+        <fieldset>
+          <legend>QA Options</legend>
+          <label class="inline-label">
+            <input type="checkbox" id="qa3kCheckbox" name="qa3kCheckbox" value="3k"> $3k
+          </label>
+        </fieldset>
+
+        <label for="emailBodyEscalation">Email Body:</label>
+        <textarea id="emailBodyEscalation" name="emailBodyEscalation" placeholder="Paste the email body here"></textarea>
+
+        <!-- ICU Fields -->
+        <label for="time-of-day-escalation">Select Time of Day:</label>
+        <select id="time-of-day-escalation" name="time-of-day">
+          <option value="" selected>Select an option</option>
+          <option value="morning">Morning</option>
+          <option value="afternoon">Afternoon</option>
+          <option value="evening">Evening</option>
+        </select>
+
+        <label for="requested-by-escalation">Requested By:</label>
+        <input type="text" id="requested-by-escalation" name="requested-by" placeholder="Enter Requester's Name">
+
+        <label for="icu-case-escalation">ICU Case Number:</label>
+        <input type="text" id="icu-case-escalation" name="icu-case" placeholder="Enter ICU Case Number">
+
+        <button type="button" onclick="generateEscalationText()">Generate Text</button>
+      </form>
+      <div id="escalationResult">
+        <button class="copy-button" onclick="copyToClipboard('escalationOutput')">Copy</button>
+        <p id="escalationOutput"></p>
+      </div>
+      <div id="icuResultEscalation">
+        <button class="copy-button" onclick="copyToClipboard('icuOutputEscalation')">Copy</button>
+        <p id="icuOutputEscalation"></p>
+      </div>
+    </div>
+
+    <!-- $3k Build Form -->
+    <div id="threekBuildForm" class="hidden">
+      <h3>$3k Build Form</h3>
+      <form id="threekBuildFormFields">
+        <label for="assetIdThreeK">Website Build Case #:</label>
+        <input type="text" id="assetIdThreeK" name="assetIdThreeK">
+        <button type="button" onclick="generateThreeKText()">Generate Text</button>
+      </form>
+      <div id="threekBuildResult">
+        <button class="copy-button" onclick="copyToClipboard('threekBuildOutput')">Copy</button>
+        <p id="threekBuildOutput"></p>
+      </div>
+    </div>
+
+    <!-- Amends Form (Standalone) -->
+    <div id="amendsForm" class="hidden">
+      <h3>Amends Form</h3>
+      <form id="amendsFormFields">
+        <label for="assetIdAmends">Asset ID #:</label>
+        <input type="text" id="assetIdAmends" name="assetIdAmends">
+
+        <label for="emailBodyAmends">Email Body:</label>
+        <textarea id="emailBodyAmends" name="emailBodyAmends" placeholder="Paste the email body here"></textarea>
+
+        <!-- Amends Options placed immediately after the Email Body -->
+        <fieldset>
+          <legend>Amends Options</legend>
+          <label class="inline-label">
+            <input type="checkbox" id="amends3kAmends" name="amendsOptionsAmends" value="3k"> $3k+
+          </label>
+          <label class="inline-label">
+            <input type="checkbox" id="amendsEliteAmends" name="amendsOptionsAmends" value="elite"> Elite
+          </label>
+          <label class="inline-label">
+            <input type="checkbox" id="amendsOutOfNormAmends" name="amendsOptionsAmends" value="outOfNorm"> Out of Norm
+          </label>
+          <br>
+          <label class="inline-label">Pre-live 
+            <input type="radio" id="amendsPreLiveAmends" name="amendsLiveStatusAmends" value="pre-live">
+          </label>
+          <label class="inline-label">Post-live 
+            <input type="radio" id="amendsPostLiveAmends" name="amendsLiveStatusAmends" value="post-live">
+          </label>
+        </fieldset>
+
+        <!-- ICU Fields for Amends -->
+        <label for="time-of-day-amends">Select Time of Day:</label>
+        <select id="time-of-day-amends" name="time-of-day">
+          <option value="" selected>Select an option</option>
+          <option value="morning">Morning</option>
+          <option value="afternoon">Afternoon</option>
+          <option value="evening">Evening</option>
+        </select>
+
+        <label for="requested-by-amends">Requested By:</label>
+        <input type="text" id="requested-by-amends" name="requested-by" placeholder="Enter Requester's Name">
+
+        <label for="icu-case-amends">ICU Case Number:</label>
+        <input type="text" id="icu-case-amends" name="icu-case" placeholder="Enter ICU Case Number">
+
+        <button type="button" onclick="generateAmendsText()">Generate Amends Text</button>
+      </form>
+      <!-- Main Amends Output (Header + Email Body) -->
+      <div id="amendsResult">
+        <button class="copy-button" onclick="copyToClipboard('amendsOutput')">Copy</button>
+        <p id="amendsOutput"></p>
+      </div>
+      <!-- Separate ICU Output for Amends -->
+      <div id="icuResultAmends">
+        <button class="copy-button" onclick="copyToClipboard('icuOutputAmends')">Copy</button>
+        <p id="icuOutputAmends"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Show the selected form
+    function showForm() {
+      var selectedForm = document.getElementById('formSelector').value;
+      document.getElementById('callOutForm').classList.add('hidden');
+      document.getElementById('escalationForm').classList.add('hidden');
+      document.getElementById('threekBuildForm').classList.add('hidden');
+      document.getElementById('amendsForm').classList.add('hidden');
+      if (selectedForm) {
+        document.getElementById(selectedForm).classList.remove('hidden');
+      }
+    }
+
+    // Format date into "Day, Month DateSuffix"
+    function formatDate(inputDate) {
+      if (!inputDate) return '';
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const date = new Date(inputDate + 'T00:00:00');
+      const dayName = days[date.getUTCDay()];
+      const monthName = months[date.getUTCMonth()];
+      const day = date.getUTCDate();
+      let suffix;
+      if (day > 3 && day < 21) {
+        suffix = 'th';
+      } else {
+        switch (day % 10) {
+          case 1: suffix = 'st'; break;
+          case 2: suffix = 'nd'; break;
+          case 3: suffix = 'rd'; break;
+          default: suffix = 'th';
+        }
+      }
+      return `${dayName}, ${monthName} ${day}${suffix}`;
+    }
+
+    // Helper: Build the Amends header string.
+    // includeFooter = true for the standalone Amends form (adds the "Please see below..." line)
+    // includeFooter = false for the Call-Out form (only header line)
+    function generateAmendsHeader(assetId, is3k, isElite, isOutOfNorm, liveStatus, includeFooter) {
+      var header = "";
+      var footer = "";
+      if (isOutOfNorm) {
+        header = "Out of Norm Request Asset ID #: " + assetId;
+        if (includeFooter) {
+          footer = "\n\nPlease see below for Post-Live amends";
+        }
+      } else {
+        if (liveStatus === 'pre-live') {
+          header = is3k ? "Premier Amends Pre Asset ID #: " + assetId : "Proofing Amends Asset ID #: " + assetId;
+          if (includeFooter) {
+            footer = isElite ? "\n\nPlease see below for Pre-Live amends on this Elite account" : "\n\nPlease see below for Pre-Live amends";
+          }
+        } else if (liveStatus === 'post-live') {
+          header = is3k ? "Premier Amends Post Asset ID #: " + assetId : "Live Amends Asset ID #: " + assetId;
+          if (includeFooter) {
+            footer = isElite ? "\n\nPlease see below for Post-Live amends on this Elite account" : "\n\nPlease see below for Post-Live amends";
+          }
+        } else {
+          header = "Amends Asset ID #: " + assetId;
+        }
+      }
+      return includeFooter ? header + footer : header;
+    }
+
+    // Generate the Call-Out text – including separate ICU output.
+    function generateCallOutText() {
+      var assetId = document.getElementById('assetId').value;
+      var name = document.getElementById('name').value;
+      var phoneNumber = document.getElementById('phoneNumber').value;
+      var date = formatDate(document.getElementById('date').value);
+      var time = document.getElementById('time').value;
+      var reason = document.getElementById('reason').value;
+      var emailBody = document.getElementById('emailBodyCallOut').value.trim();
+      // ICU fields
+      var timeOfDay = document.getElementById('time-of-day-callout').value;
+      var requestedBy = document.getElementById('requested-by-callout').value;
+      var icuCase = document.getElementById('icu-case-callout').value;
+      // Amends options from the Call-Out form
+      var is3k = document.getElementById('amends3kCallOut').checked;
+      var isElite = document.getElementById('amendsEliteCallOut').checked;
+      var isOutOfNorm = document.getElementById('amendsOutOfNormCallOut').checked;
+      var liveStatus = "";
+      if (document.getElementById('amendsPreLiveCallOut').checked) {
+        liveStatus = 'pre-live';
+      } else if (document.getElementById('amendsPostLiveCallOut').checked) {
+        liveStatus = 'post-live';
+      }
+      // Build the header line (for Call-Out, we do not include the footer)
+      var headerLine = generateAmendsHeader(assetId, is3k, isElite, isOutOfNorm, liveStatus, false);
+      // Build the main call-out message (omitting duplicate Asset ID text)
+      var calloutBody = `Please call out to ${name}`;
+      if (phoneNumber) calloutBody += ` at ${phoneNumber}`;
+      if (date) calloutBody += ` on ${date}`;
+      if (time) calloutBody += ` at ${time}`;
+      calloutBody += `. ${reason}. Please see below and the attached email for further details.\n\n`;
+      if (emailBody) {
+        calloutBody += `==========================================\n${emailBody}\n\n`;
+      }
+      var resultText = headerLine + "\n\n" + calloutBody;
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('outputResult').innerText = resultText;
+
+      // Build the ICU output using the removed logic:
+      var icuText = "";
+      if (timeOfDay && requestedBy) {
+        icuText += `Good ${timeOfDay} ${requestedBy},\n\n`;
+      }
+      if (icuCase) {
+        icuText += `We’ve escalated this request via case ${icuCase}. `;
+      }
+      icuText += `A specialist will make the callout to ${name}`;
+      if (phoneNumber) {
+        icuText += ` at ${phoneNumber}`;
+      }
+      if (date) {
+        icuText += ` on ${date}`;
+      }
+      if (time) {
+        icuText += ` at ${time}`;
+      }
+      icuText += `.\n\n`;
+      
+      if (icuText.trim() !== "") {
+        document.getElementById('icuResultCallOut').style.display = 'block';
+        document.getElementById('icuOutputCallOut').innerText = icuText;
+      } else {
+        document.getElementById('icuResultCallOut').style.display = 'none';
+      }
+    }
+
+    // Generate the QA Escalation text – now with a $3k option.
+    function generateEscalationText() {
+      var assetId = document.getElementById('assetIdEscalation').value;
+      var emailBodyEscalation = document.getElementById('emailBodyEscalation').value.trim();
+      var timeOfDay = document.getElementById('time-of-day-escalation').value;
+      var requestedBy = document.getElementById('requested-by-escalation').value;
+      var icuCase = document.getElementById('icu-case-escalation').value;
+      // Determine prefix based on the $3k checkbox in QA form.
+      var prefix = document.getElementById('qa3kCheckbox').checked ? "Premier Amends Pre " : "Proofing Amends ";
+      var resultText = `${prefix}Asset ID #: ${assetId}\n\nEscalation from QA, please see below and attached for changes.\n\n`;
+      if (emailBodyEscalation) {
+        resultText += `==========================================\n${emailBodyEscalation}\n\n`;
+      }
+      document.getElementById('escalationResult').style.display = 'block';
+      document.getElementById('escalationOutput').innerText = resultText;
+      
+      var icuText = "";
+      if (timeOfDay && requestedBy) {
+        icuText += `Good ${timeOfDay} ${requestedBy},\n\n`;
+      }
+      if (icuCase) {
+        icuText += `We’ve escalated this request via case ${icuCase}. A specialist will make the requested changes and update you when they’re completed.`;
+      }
+      icuText += `\n\n`;
+      if (icuText.trim() !== "") {
+        document.getElementById('icuResultEscalation').style.display = 'block';
+        document.getElementById('icuOutputEscalation').innerText = icuText;
+      } else {
+        document.getElementById('icuResultEscalation').style.display = 'none';
+      }
+    }
+
+    // Generate the $3k Build text (unchanged)
+    function generateThreeKText() {
+      var assetId = document.getElementById('assetIdThreeK').value;
+      var resultText = `Website Build Case #: ${assetId}\n\nThis is a Priority design full build. Please build the site on case #: ${assetId}.\n\n`;
+      document.getElementById('threekBuildResult').style.display = 'block';
+      document.getElementById('threekBuildOutput').innerText = resultText;
+    }
+
+    // Generate the Standalone Amends text with separate ICU output.
+    function generateAmendsText() {
+      var assetId = document.getElementById('assetIdAmends').value;
+      var emailBody = document.getElementById('emailBodyAmends').value.trim();
+      // Amends options from the Amends form
+      var is3k = document.getElementById('amends3kAmends').checked;
+      var isElite = document.getElementById('amendsEliteAmends').checked;
+      var isOutOfNorm = document.getElementById('amendsOutOfNormAmends').checked;
+      var liveStatus = "";
+      if (document.getElementById('amendsPreLiveAmends').checked) {
+        liveStatus = 'pre-live';
+      } else if (document.getElementById('amendsPostLiveAmends').checked) {
+        liveStatus = 'post-live';
+      }
+      // Build the main header (with footer) for Amends
+      var mainHeader = generateAmendsHeader(assetId, is3k, isElite, isOutOfNorm, liveStatus, true);
+      var mainOutput = mainHeader;
+      if (emailBody) {
+        mainOutput += "\n==========================================\n" + emailBody;
+      }
+      document.getElementById('amendsResult').style.display = 'block';
+      document.getElementById('amendsOutput').innerText = mainOutput;
+      
+      // Build the ICU text separately for Amends
+      var timeOfDayAmends = document.getElementById('time-of-day-amends').value;
+      var requestedByAmends = document.getElementById('requested-by-amends').value;
+      var icuCaseAmends = document.getElementById('icu-case-amends').value;
+      var icuText = "";
+      if (timeOfDayAmends && requestedByAmends) {
+        icuText += `Good ${timeOfDayAmends} ${requestedByAmends},\n\n`;
+      }
+      if (icuCaseAmends) {
+        icuText += `ICU Case #: ${icuCaseAmends}\n\n`;
+      }
+      if (icuText.trim() !== "") {
+        document.getElementById('icuResultAmends').style.display = 'block';
+        document.getElementById('icuOutputAmends').innerText = icuText;
+      } else {
+        document.getElementById('icuResultAmends').style.display = 'none';
+      }
+    }
+
+    // Copy text to clipboard and show popup
+    function copyToClipboard(elementId) {
+      var text = document.getElementById(elementId).innerText;
+      navigator.clipboard.writeText(text).then(function() {
+        var popup = document.getElementById('copyPopup');
+        popup.style.display = 'block';
+        setTimeout(function() {
+          popup.style.display = 'none';
+        }, 1000);
+      }, function(err) {
+        console.error('Could not copy text: ', err);
+      });
+    }
+  </script>
+</body>
+</html>
